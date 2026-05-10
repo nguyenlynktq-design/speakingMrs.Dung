@@ -94,36 +94,44 @@ export const generateContent = async (
     });
   }
 
-  const response = await getAI().models.generateContent({
-    model,
-    contents: [{ parts }],
-    config: { 
-      systemInstruction,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          prompt: { type: Type.STRING, description: "Detailed English prompt for image generation" },
-          readingText: { type: Type.STRING, description: "Educational English reading passage" },
-          topicName: { type: Type.STRING, description: "Catchy title (max 5 words)" },
-          translation: { type: Type.STRING, description: "Vietnamese translation of the passage" },
-          vocabulary: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                word: { type: Type.STRING },
-                ipa: { type: Type.STRING },
-                meaning: { type: Type.STRING }
-              },
-              required: ["word", "ipa", "meaning"]
+  let response;
+  try {
+    response = await getAI().models.generateContent({
+      model,
+      contents: [{ parts }],
+      config: { 
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            prompt: { type: Type.STRING, description: "Detailed English prompt for image generation" },
+            readingText: { type: Type.STRING, description: "Educational English reading passage" },
+            topicName: { type: Type.STRING, description: "Catchy title (max 5 words)" },
+            translation: { type: Type.STRING, description: "Vietnamese translation of the passage" },
+            vocabulary: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  word: { type: Type.STRING },
+                  ipa: { type: Type.STRING },
+                  meaning: { type: Type.STRING }
+                },
+                required: ["word", "ipa", "meaning"]
+              }
             }
-          }
-        },
-        required: ["prompt", "readingText", "topicName", "translation", "vocabulary"]
-      }
-    },
-  });
+          },
+          required: ["prompt", "readingText", "topicName", "translation", "vocabulary"]
+        }
+      },
+    });
+  } catch (err: any) {
+    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.includes("quota") || err?.message?.includes("Quota")) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    throw err;
+  }
 
   if (!response.text) {
     throw new Error("Gemini returned an empty response");
@@ -404,8 +412,11 @@ Output định dạng JSON:
       strengths: result.strengths || [],
       improvements: result.improvements || []
     };
-  } catch (e) {
-    console.error("Failed to parse evaluation response", e);
+  } catch (err: any) {
+    console.error("Speech Evaluation Error:", err);
+    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.includes("quota") || err?.message?.includes("Quota")) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
     throw new Error("Failed to evaluate speech");
   }
 };

@@ -247,7 +247,9 @@ export default function App() {
     } catch (err: any) {
       console.error(err);
       const errorMessage = err?.message || String(err);
-      if (errorMessage.includes("safety") || errorMessage.includes("Safety")) {
+      if (errorMessage === "QUOTA_EXCEEDED") {
+        setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
+      } else if (errorMessage.includes("safety") || errorMessage.includes("Safety")) {
         setError("Nội dung hoặc hình ảnh bị chặn bởi bộ lọc an toàn. Vui lòng thử chủ đề khác.");
       } else if (errorMessage.includes("403") || errorMessage.includes("API key")) {
         setError("Lỗi xác thực (API Key). Vui lòng kiểm tra cấu hình Secrets.");
@@ -338,14 +340,24 @@ export default function App() {
       const reader = new FileReader();
       reader.readAsDataURL(audioBlob);
       reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        const result = await evaluateSpeech(readingText, base64Audio, level);
-        setEvaluation(result);
-        setIsEvaluating(false);
+        try {
+          const base64Audio = (reader.result as string).split(',')[1];
+          const result = await evaluateSpeech(readingText, base64Audio, level);
+          setEvaluation(result);
+          setIsEvaluating(false);
+        } catch (err: any) {
+          console.error("Evaluation error:", err);
+          if (err?.message === "QUOTA_EXCEEDED") {
+            setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
+          } else {
+            setError("Có lỗi xảy ra khi chấm điểm. Vui lòng thử lại.");
+          }
+          setIsEvaluating(false);
+        }
       };
-    } catch (err) {
-      console.error("Evaluation error:", err);
-      setError("Có lỗi xảy ra khi chấm điểm. Vui lòng thử lại.");
+    } catch (err: any) {
+      console.error("Reader error:", err);
+      setError("Có lỗi xảy ra khi xử lý audio.");
       setIsEvaluating(false);
     }
   };
