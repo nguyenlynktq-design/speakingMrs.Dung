@@ -271,16 +271,23 @@ export default function App() {
         setError("Lỗi xử lý dữ liệu từ AI. Vui lòng thử lại.");
       } else {
         // Handle raw JSON error objects if they leak through
+        let treatedAsQuota = false;
         try {
           const parsedError = JSON.parse(errorMessage);
-          if (parsedError?.error?.code === 429) {
+          if (parsedError?.error?.code === 429 || parsedError?.status === 429) {
             setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
-            setIsAudioLoading(false);
-            return;
+            treatedAsQuota = true;
           }
-        } catch (e) { /* ignore parse error */ }
+        } catch (e) { 
+          if (errorMessage.includes('"code":429') || errorMessage.includes('"code": 429')) {
+            setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+            treatedAsQuota = true;
+          }
+        }
 
-        setError(`Có lỗi xảy ra: ${errorMessage.substring(0, 70)}${errorMessage.length > 70 ? '...' : ''}. Vui lòng thử lại.`);
+        if (!treatedAsQuota) {
+          setError(`Có lỗi xảy ra: ${errorMessage.substring(0, 70)}${errorMessage.length > 70 ? '...' : ''}. Vui lòng thử lại.`);
+        }
       }
       setIsAudioLoading(false);
     } finally {
@@ -371,12 +378,31 @@ export default function App() {
           setIsEvaluating(false);
         } catch (err: any) {
           console.error("Evaluation error:", err);
-          const msg = err?.message || String(err);
-          if (msg === "QUOTA_EXCEEDED") {
+          const errorMessage = err?.message || String(err);
+          let treatedAsQuota = false;
+          
+          if (errorMessage === "QUOTA_EXCEEDED") {
             setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
-          } else if (msg === "INVALID_KEY") {
+            treatedAsQuota = true;
+          } else if (errorMessage === "INVALID_KEY") {
             setError("API Key không hợp lệ. Vui lòng kiểm tra lại cáu hình trong 'Cài đặt API Key'.");
           } else {
+            // Handle raw JSON error objects if they leak through
+            try {
+              const parsedError = JSON.parse(errorMessage);
+              if (parsedError?.error?.code === 429 || parsedError?.status === 429) {
+                setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+                treatedAsQuota = true;
+              }
+            } catch (e) { 
+              if (errorMessage.includes('"code":429') || errorMessage.includes('"code": 429')) {
+                setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+                treatedAsQuota = true;
+              }
+            }
+          }
+
+          if (!treatedAsQuota && !error) {
             setError("Có lỗi xảy ra khi chấm điểm. Vui lòng thử lại.");
           }
           setIsEvaluating(false);
