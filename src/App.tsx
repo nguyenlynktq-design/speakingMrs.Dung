@@ -587,9 +587,11 @@ export default function App() {
                   <Zap size={16} className="text-brand-yellow" />
                   <span className="text-sm font-black text-white">Cài đặt API Key</span>
                 </div>
-                <span className="text-[10px] font-bold text-red-500 mt-1 animate-pulse bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
-                  Lấy API key để sử dụng app
-                </span>
+                {!apiKey && (
+                  <span className="text-[10px] font-bold text-red-500 mt-1 animate-pulse bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
+                    Lấy API key để sử dụng app
+                  </span>
+                )}
               </button>
 
               <div className="hidden sm:flex items-center gap-4 text-xs font-bold text-white/80">
