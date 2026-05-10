@@ -286,7 +286,7 @@ export default function App() {
         }
 
         if (!treatedAsQuota) {
-          setError(`Có lỗi xảy ra: ${errorMessage.substring(0, 70)}${errorMessage.length > 70 ? '...' : ''}. Vui lòng thử lại.`);
+          setError(`Lỗi: ${errorMessage.substring(0, 100)}${errorMessage.length > 100 ? '...' : ''}. (Nếu bạn chắc chắn API Key còn hạn mức, vui lòng thử lại hoặc kiểm tra kết nối mạng)`);
         }
       }
       setIsAudioLoading(false);
@@ -403,7 +403,7 @@ export default function App() {
           }
 
           if (!treatedAsQuota && !error) {
-            setError("Có lỗi xảy ra khi chấm điểm. Vui lòng thử lại.");
+            setError(`Lỗi chấm điểm: ${errorMessage.substring(0, 100)}${errorMessage.length > 100 ? '...' : ''}. (Vui lòng thử lại)`);
           }
           setIsEvaluating(false);
         }

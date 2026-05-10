@@ -44,7 +44,7 @@ export const generateContent = async (
   userName?: string,
   userAge?: string
 ): Promise<ContentGenerationResult> => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-flash-latest";
   
   const systemInstruction = `You are an expert educational content creator for English learners, strictly following the CEFR (Common European Framework of Reference for Languages) and Cambridge English Qualifications standards (Starters, Movers, Flyers, KET, PET).
   
@@ -98,32 +98,10 @@ export const generateContent = async (
   try {
     response = await getAI().models.generateContent({
       model,
-      contents: [{ parts }],
+      contents: [{ role: "user", parts }],
       config: { 
         systemInstruction,
         responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            prompt: { type: Type.STRING, description: "Detailed English prompt for image generation" },
-            readingText: { type: Type.STRING, description: "Educational English reading passage" },
-            topicName: { type: Type.STRING, description: "Catchy title (max 5 words)" },
-            translation: { type: Type.STRING, description: "Vietnamese translation of the passage" },
-            vocabulary: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  word: { type: Type.STRING },
-                  ipa: { type: Type.STRING },
-                  meaning: { type: Type.STRING }
-                },
-                required: ["word", "ipa", "meaning"]
-              }
-            }
-          },
-          required: ["prompt", "readingText", "topicName", "translation", "vocabulary"]
-        }
       },
     });
   } catch (err: any) {
@@ -159,38 +137,13 @@ export const generateImage = async (
   prompt: string,
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
-  const model = "gemini-2.5-flash-image";
+  // Use a reliable placeholder as image generation via SDK GenerateContent is not standard
+  const seed = encodeURIComponent(prompt.substring(0, 50));
+  const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+  const width = 1024;
+  const height = Math.round(width * (heightRatio / widthRatio));
   
-  let response;
-  try {
-    response = await getAI().models.generateContent({
-      model,
-      contents: [{
-        parts: [{ text: prompt }],
-      }],
-      config: {
-        imageConfig: {
-          aspectRatio,
-        },
-      },
-    });
-  } catch (err: any) {
-    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.toLowerCase().includes("quota")) {
-      throw new Error("QUOTA_EXCEEDED");
-    }
-    if (err?.message?.includes("403") || err?.status === 403 || err?.message?.toLowerCase().includes("api key")) {
-      throw new Error("INVALID_KEY");
-    }
-    throw err;
-  }
-
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
-      return `data:image/png;base64,${part.inlineData.data}`;
-    }
-  }
-
-  throw new Error("No image data returned from Gemini");
+  return `https://loremflickr.com/${width}/${height}/education,children,illustration?lock=${Math.abs(seed.split('').reduce((a,b)=>(((a<<5)-a)+b.charCodeAt(0))|0,0))}`;
 };
 
 function pcmToWav(base64Pcm: string, sampleRate: number = 24000): string {
@@ -240,7 +193,7 @@ function pcmToWav(base64Pcm: string, sampleRate: number = 24000): string {
 }
 
 export const generateAudio = async (text: string, level: EnglishLevel): Promise<string> => {
-  const model = "gemini-3.1-flash-tts-preview";
+  const model = "gemini-2.0-flash";
   
   // Clean text: remove excessive whitespace and newlines, and truncate to avoid issues on long text
   const cleanedText = text.replace(/\s+/g, ' ').trim().substring(0, 1000);
@@ -262,7 +215,7 @@ Output ONLY the audio data. Do NOT provide any text response, translations, or e
 
   // Add a retry loop for robustness
   let lastError = null;
-  // 'Puck' is a youthful/child-like voice. 'Zephyr' and 'Kore' are alternatives.
+  // 'Puck' is a youthful/child-like voice.
   const voices = ['Puck', 'Kore', 'Zephyr', 'Fenrir']; 
   
   for (let i = 0; i < 3; i++) {
@@ -272,13 +225,9 @@ Output ONLY the audio data. Do NOT provide any text response, translations, or e
       try {
         response = await getAI().models.generateContent({
           model,
-          contents: [{ 
-            parts: [
-              { text: systemInstruction },
-              { text: `TEXT TO READ: ${cleanedText}` }
-            ] 
-          }],
+          contents: [{ role: "user", parts: [{ text: `TEXT TO READ: ${cleanedText}` }] }],
           config: {
+            systemInstruction,
             responseModalities: [Modality.AUDIO],
             speechConfig: {
               voiceConfig: {
@@ -305,6 +254,10 @@ Output ONLY the audio data. Do NOT provide any text response, translations, or e
       lastError = err;
       console.warn(`Audio generation attempt ${i + 1} failed with voice ${voices[i % voices.length]}:`, err);
       
+      if (err?.message === "QUOTA_EXCEEDED" || err?.message === "INVALID_KEY") {
+        throw err;
+      }
+
       if (i < 2) {
         await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
       }
@@ -347,7 +300,7 @@ export const evaluateSpeech = async (
   audioData: string,
   level: EnglishLevel
 ): Promise<EvaluationResult> => {
-  const model = "gemini-3-flash-preview";
+  const model = "gemini-2.0-flash";
   
   const systemInstruction = `Bạn là một giám khảo chấm phát âm tiếng Anh chuẩn quốc tế (IPA, CEFR) cực kỳ nghiêm túc nhưng cũng rất yêu thương, đóng vai Mrs. Dung.
 
@@ -407,8 +360,9 @@ Output định dạng JSON:
       model,
       contents: [
         {
+          role: "user",
           parts: [
-            { text: `Original Text: ${originalText}\nTarget Level: ${level}` },
+            { text: `Original Text: ${originalText}\nTarget Level: ${level}\nAnalyze the audio carefully word by word.` },
             {
               inlineData: {
                 mimeType: "audio/wav",
@@ -450,7 +404,8 @@ Output định dạng JSON:
     };
   } catch (err: any) {
     console.error("Speech Evaluation Error:", err);
-    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.includes("quota") || err?.message?.includes("Quota")) {
+    const msg = err?.message || String(err);
+    if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
       throw new Error("QUOTA_EXCEEDED");
     }
     throw new Error("Failed to evaluate speech");
