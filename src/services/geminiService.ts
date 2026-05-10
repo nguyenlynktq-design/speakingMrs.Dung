@@ -127,8 +127,11 @@ export const generateContent = async (
       },
     });
   } catch (err: any) {
-    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.includes("quota") || err?.message?.includes("Quota")) {
+    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.toLowerCase().includes("quota")) {
       throw new Error("QUOTA_EXCEEDED");
+    }
+    if (err?.message?.includes("403") || err?.status === 403 || err?.message?.toLowerCase().includes("api key")) {
+      throw new Error("INVALID_KEY");
     }
     throw err;
   }
@@ -158,17 +161,28 @@ export const generateImage = async (
 ): Promise<string> => {
   const model = "gemini-2.5-flash-image";
   
-  const response = await getAI().models.generateContent({
-    model,
-    contents: [{
-      parts: [{ text: prompt }],
-    }],
-    config: {
-      imageConfig: {
-        aspectRatio,
+  let response;
+  try {
+    response = await getAI().models.generateContent({
+      model,
+      contents: [{
+        parts: [{ text: prompt }],
+      }],
+      config: {
+        imageConfig: {
+          aspectRatio,
+        },
       },
-    },
-  });
+    });
+  } catch (err: any) {
+    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.toLowerCase().includes("quota")) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    if (err?.message?.includes("403") || err?.status === 403 || err?.message?.toLowerCase().includes("api key")) {
+      throw new Error("INVALID_KEY");
+    }
+    throw err;
+  }
 
   for (const part of response.candidates?.[0]?.content?.parts || []) {
     if (part.inlineData) {
@@ -254,23 +268,34 @@ Output ONLY the audio data. Do NOT provide any text response, translations, or e
   for (let i = 0; i < 3; i++) {
     try {
       const currentVoice = voices[i % voices.length];
-      const response = await getAI().models.generateContent({
-        model,
-        contents: [{ 
-          parts: [
-            { text: systemInstruction },
-            { text: `TEXT TO READ: ${cleanedText}` }
-          ] 
-        }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: currentVoice as any },
+      let response;
+      try {
+        response = await getAI().models.generateContent({
+          model,
+          contents: [{ 
+            parts: [
+              { text: systemInstruction },
+              { text: `TEXT TO READ: ${cleanedText}` }
+            ] 
+          }],
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: currentVoice as any },
+              },
             },
           },
-        },
-      });
+        });
+      } catch (err: any) {
+        if (err?.message?.includes("429") || err?.status === 429 || err?.message?.toLowerCase().includes("quota")) {
+          throw new Error("QUOTA_EXCEEDED");
+        }
+        if (err?.message?.includes("403") || err?.status === 403 || err?.message?.toLowerCase().includes("api key")) {
+          throw new Error("INVALID_KEY");
+        }
+        throw err;
+      }
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
       if (base64Audio) {
@@ -376,26 +401,37 @@ Output định dạng JSON:
   "improvements": string[]
 }`;
 
-  const response = await getAI().models.generateContent({
-    model,
-    contents: [
-      {
-        parts: [
-          { text: `Original Text: ${originalText}\nTarget Level: ${level}` },
-          {
-            inlineData: {
-              mimeType: "audio/wav",
-              data: audioData,
+  let response;
+  try {
+    response = await getAI().models.generateContent({
+      model,
+      contents: [
+        {
+          parts: [
+            { text: `Original Text: ${originalText}\nTarget Level: ${level}` },
+            {
+              inlineData: {
+                mimeType: "audio/wav",
+                data: audioData,
+              },
             },
-          },
-        ],
+          ],
+        },
+      ],
+      config: { 
+        systemInstruction,
+        responseMimeType: "application/json"
       },
-    ],
-    config: { 
-      systemInstruction,
-      responseMimeType: "application/json"
-    },
-  });
+    });
+  } catch (err: any) {
+    if (err?.message?.includes("429") || err?.status === 429 || err?.message?.toLowerCase().includes("quota")) {
+      throw new Error("QUOTA_EXCEEDED");
+    }
+    if (err?.message?.includes("403") || err?.status === 403 || err?.message?.toLowerCase().includes("api key")) {
+      throw new Error("INVALID_KEY");
+    }
+    throw err;
+  }
 
   try {
     const result = JSON.parse(response.text || "{}");

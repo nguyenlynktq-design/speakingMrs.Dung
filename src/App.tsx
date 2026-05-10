@@ -88,9 +88,16 @@ export default function App() {
 
   const handleUpdateApiKey = (newKey: string) => {
     const trimmedKey = newKey.trim();
+    if (!trimmedKey) {
+      setError("Vui lòng nhập API Key.");
+      return;
+    }
     setApiKey(trimmedKey);
     localStorage.setItem("GEMINI_API_KEY", trimmedKey);
     setShowApiKeyModal(false);
+    setError(null); // Clear any previous API related errors
+    // Since we use the function getter approach in geminiService, 
+    // it will pick up the new key on the next call.
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -234,6 +241,11 @@ export default function App() {
         generateImage(prompt, aspectRatio),
         readingText ? generateAudio(readingText, level).catch(err => {
           console.error("Background audio generation failed", err);
+          const msg = err?.message || "";
+          if (msg === "QUOTA_EXCEEDED" || msg === "INVALID_KEY") {
+            // Don't swallow these critical errors
+            throw err;
+          }
           setError("Không thể tạo âm thanh bài đọc. Bạn vẫn có thể luyện nói bình thường.");
           return null;
         }) : Promise.resolve(null)
@@ -249,14 +261,26 @@ export default function App() {
       const errorMessage = err?.message || String(err);
       if (errorMessage === "QUOTA_EXCEEDED") {
         setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
+      } else if (errorMessage === "INVALID_KEY") {
+        setError("API Key không hợp lệ hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra lại trong phần 'Cài đặt API Key'.");
       } else if (errorMessage.includes("safety") || errorMessage.includes("Safety")) {
         setError("Nội dung hoặc hình ảnh bị chặn bởi bộ lọc an toàn. Vui lòng thử chủ đề khác.");
       } else if (errorMessage.includes("403") || errorMessage.includes("API key")) {
-        setError("Lỗi xác thực (API Key). Vui lòng kiểm tra cấu hình Secrets.");
+        setError("Lỗi xác thực (API Key). Vui lòng kiểm tra cấu hình API Key của bạn.");
       } else if (errorMessage.includes("parsing") || errorMessage.includes("parse")) {
         setError("Lỗi xử lý dữ liệu từ AI. Vui lòng thử lại.");
       } else {
-        setError(`Có lỗi xảy ra: ${errorMessage.substring(0, 50)}${errorMessage.length > 50 ? '...' : ''}. Vui lòng thử lại.`);
+        // Handle raw JSON error objects if they leak through
+        try {
+          const parsedError = JSON.parse(errorMessage);
+          if (parsedError?.error?.code === 429) {
+            setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+            setIsAudioLoading(false);
+            return;
+          }
+        } catch (e) { /* ignore parse error */ }
+
+        setError(`Có lỗi xảy ra: ${errorMessage.substring(0, 70)}${errorMessage.length > 70 ? '...' : ''}. Vui lòng thử lại.`);
       }
       setIsAudioLoading(false);
     } finally {
@@ -347,8 +371,11 @@ export default function App() {
           setIsEvaluating(false);
         } catch (err: any) {
           console.error("Evaluation error:", err);
-          if (err?.message === "QUOTA_EXCEEDED") {
+          const msg = err?.message || String(err);
+          if (msg === "QUOTA_EXCEEDED") {
             setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
+          } else if (msg === "INVALID_KEY") {
+            setError("API Key không hợp lệ. Vui lòng kiểm tra lại cáu hình trong 'Cài đặt API Key'.");
           } else {
             setError("Có lỗi xảy ra khi chấm điểm. Vui lòng thử lại.");
           }
