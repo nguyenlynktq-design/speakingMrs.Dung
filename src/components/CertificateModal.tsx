@@ -23,7 +23,7 @@ interface CertificateModalProps {
 /* ── Colour tokens ─────────────────────────────────────── */
 const C = {
   green:      '#00a84d',
-  greenDark:  '#0d4023',
+  greenDark:  '#166534',
   greenLight: '#e6f9ef',
   white:      '#ffffff',
   dark:       '#1a1a1a',
@@ -169,7 +169,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
 
                     {/* School Name */}
                     <p style={{
-                      fontSize: '11px', fontWeight: 800, color: C.greenDark,
+                      fontSize: '11px', fontWeight: 800, color: C.green,
                       letterSpacing: '0.2em', textTransform: 'uppercase',
                       margin: '6px 0 0', lineHeight: 1.3,
                     }}>
