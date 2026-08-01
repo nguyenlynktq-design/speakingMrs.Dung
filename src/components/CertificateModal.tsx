@@ -136,7 +136,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   width: '100%',
                   aspectRatio: '1.414 / 1',
                   backgroundColor: C.white,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
+                  fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                   overflow: 'hidden',
                   border: `5px solid ${C.green}`,
                   borderRadius: '6px',
@@ -181,7 +181,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                       fontSize: '28px', fontWeight: 900,
                       color: C.greenDark,
                       margin: '0', lineHeight: 1.15,
-                      fontFamily: "'Georgia', 'Times New Roman', serif",
+                      fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                     }}>
                       GIẤY CHỨNG NHẬN
                     </h1>
@@ -210,7 +210,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                       <h2 style={{
                         fontSize: '36px', fontWeight: 900,
                         color: C.dark, margin: 0, padding: '0 0 6px',
-                        fontFamily: "'Georgia', 'Times New Roman', serif",
+                        fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                         lineHeight: 1.15,
                         wordBreak: 'break-word',
                       }}>
@@ -236,7 +236,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                       <p style={{
                         fontSize: '18px', fontWeight: 900, color: C.dark,
                         margin: 0, fontStyle: 'italic',
-                        fontFamily: "'Georgia', serif",
+                        fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                       }}>
                         "{displayTopic}"
                       </p>
@@ -259,7 +259,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                         <div style={{ display: 'flex', alignItems: 'baseline' }}>
                           <span style={{
                             fontSize: '30px', fontWeight: 900, color: C.white,
-                            fontFamily: "'Georgia', serif", lineHeight: 1,
+                            fontFamily: "'Roboto', 'Segoe UI', sans-serif", lineHeight: 1,
                           }}>
                             {displayScore}
                           </span>
@@ -351,7 +351,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                       <p style={{
                         fontSize: '18px', fontWeight: 900, color: C.dark,
                         margin: '0 0 2px',
-                        fontFamily: "'Georgia', serif",
+                        fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                       }}>
                         {teacherName}
                       </p>
